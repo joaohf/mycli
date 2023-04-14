@@ -1,0 +1,15 @@
+{application, mycli, [
+    {description, "My CLI"},
+    {vsn, "0.1.0"},
+    {registered, []},
+    {applications, [
+        kernel,
+        stdlib,
+        argparse
+    ]},
+    {env, []},
+    {modules, []},
+
+    {licenses, [""]},
+    {links, []}
+]}.
