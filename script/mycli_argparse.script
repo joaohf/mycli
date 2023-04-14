@@ -1,0 +1,64 @@
+#!/usr/bin/env escript
+%% -*- erlang -*-
+%%! -sname test -setcookie test
+
+-mode(compile).
+
+-export([cli/0, migrate/1]).
+
+-behaviour(cli).
+
+main(Args) ->
+    cli:run(Args, #{progname => "mycli_argparse"}).
+
+cli() ->
+    #{
+        commands => #{
+            "migrate" => #{
+                help => "Migrate configuration and system data.",
+                arguments => [
+                    #{
+                        name => remote_node,
+                        type => {atom, unsafe},
+                        short => $r,
+                        long => "-remote"
+                    }
+                ]
+            }
+        }
+    }.
+
+migrate(#{remote_node := Node}) ->
+
+    connect_node(Node),
+
+    io:format("ok: local node works~n"),
+    ok = run(node(), t(node())),
+
+    io:format("error: remote node does not work, anonymous function ~n"),
+    ok = run(Node, fun t/0),
+
+    io:format("error: remote node does not work~n"),
+    ok = run(Node, t(Node)),
+
+    ok.
+
+t() ->
+    io:format("remote node ~p~n", [node()]).
+
+t(Node) ->
+    fun() ->
+        io:format("from ~p to ~p~n", [Node, node()]), {ok, []} end.
+
+run(Node, Fun) when is_function(Fun, 0) ->
+    case erpc:call(Node, Fun) of
+        {ok, Result} ->
+            io:format("~p\n", [Result]);
+        {error, Error} ->
+            io:format("Error when running function on ~p error: ~p\n", [Node, Error]),
+            erlang:halt(1)
+    end.
+
+connect_node(Hostname) ->
+    true = net_kernel:connect_node(Hostname),
+    ok = global:sync().
